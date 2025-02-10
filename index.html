@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html  lang="sk">
+	<head>
+		<meta charset="UTF-8">
+		<title>Navigácia po mape</title>
+		<style>
+			html, body {
+				margin: 0;
+				padding: 0;
+				overflow: hidden;
+			}
+			
+			.coordinates {
+				position: fixed;
+				top: 17px;
+				left: 10px;
+				z-index: 1000;
+				background: rgba(255, 255, 255, 0.8);
+				padding: 10px;
+				border-radius: 5px;
+			}
+
+			.map-container {
+				position: relative;
+				width: 100vw;
+				height: 90vh;
+				margin: 2vh auto;
+				border: 2px solid #333;
+				overflow: hidden;
+				cursor: grab;
+			}
+
+			.map-container:active {
+				cursor: grabbing;
+			}
+
+			.map-grid {
+				position: absolute;
+				display: grid;
+				grid-template-columns: repeat(var(--columns), 512px);
+				grid-template-rows: repeat(var(--rows), 512px);
+				transform-origin: 0 0;
+				transition: transform 0.1s ease-out;
+				background-color: #ccc;
+			}
+
+			.map-tile {
+				width: 512px;
+				height: 512px;
+				background-color: #f0f0f0;
+				position: relative;
+				overflow: hidden;
+				object-fit: cover;
+				display: block;
+			}
+			
+			.map-point {
+				position: absolute;
+				width: 20px;
+				height: 20px;
+				transform: translate(-50%, -50%);
+				z-index: 1000;
+				pointer-events: auto;
+				background-size: contain;
+				background-repeat: no-repeat;
+				background-position: center;
+				cursor: pointer;
+			}
+			
+			.map-point-home {
+				background-image: url('Data/Home.svg');
+			}
+
+			.map-point-cyclone1 {
+				background-image: url('Data/Cyclone1.svg');
+			}
+
+			.map-point-cyclone2 {
+				background-image: url('Data/Cyclone2.svg');
+			}
+			
+			.map-point-pozor {
+				background-image: url('Data/Pozor.svg');
+			}
+			
+			.point-label {
+				position: absolute;
+				background: white;
+				padding: 2px 8px;
+				border-radius: 7px;
+				transform: translateY(-32px);
+				white-space: nowrap;
+				display: none;
+				text-align: center;
+			}
+			
+			.map-line {
+				position: absolute;
+				height: 2px;
+				background-color: red;
+				transform-origin: 0 50%;
+				pointer-events: none;
+				z-index: 900;
+			}
+		</style>
+	</head>
+	<body onload="loadAll()">
+		<div id="pointsData"></div>
+		<div class="coordinates">
+			Pozícia: <span id="position">x: 0, z: 0</span><br>
+			<div id="testData" class="test-data"></div>
+		</div>
+		<div class="map-container" id="mapContainer">
+			<div class="map-grid" id="mapGrid"></div>
+		</div>
+
+		<script type="text/javascript">
+			
+		
+			async function loadPoints() {
+				const response = await fetch('Data/points.json');
+				const data = await response.json();
+				const divFirst = document.getElementById('pointsData');
+				console.log(data);
+					
+				data.forEach((item, index) => {
+					const paragraph = document.createElement('p');
+					paragraph.className = 'inner';
+						
+						// Vypočítame číslo páru (1, 2, 3, ...) na základe indexu
+					const pairNumber = Math.floor(index / 2) + 1;
+						// Určíme či ide o prvý (a) alebo druhý (b) bod v páre
+					const pairLetter = index % 2 === 0 ? 'a' : 'b';
+						// Vytvoríme ID v požadovanom formáte (a1, b1, a2, b2, ...)
+					const customId = `${pairLetter}${pairNumber}`;
+						
+				});
+			}
+			
+			async function loadMapPoints() {
+				const response = await fetch('Data/points.json');
+				const data = await response.json();
+				
+				// Transformácia dát do poľa bodov s typom 'cyclone1'
+				const points = data.map((item, index) => {
+					// Určenie typu bodu na základe indexu (striedanie medzi cyclone1 a cyclone2)
+					const type = index % 2 === 0 ? 'cyclone1' : 'cyclone2';
+					
+					// Vytvorenie objektu bodu so všetkými pôvodnými vlastnosťami plus typ
+					return {
+						id: `${index % 2 === 0 ? 'a' : 'b'}${Math.floor(index / 2) + 1}`,
+						name: item.name,
+						x: item.x,
+						y: item.y,
+						z: item.z,
+						type: type
+					};
+				});
+
+				// Nahradenie globálneho poľa bodov
+				window.points = points;
+
+				// Automatické vytvorenie spojení
+				window.connections = createConnections(points);
+
+				// Opätovné vytvorenie mapových bodov po načítaní
+				createMapPoints();
+			}
+			
+			async function loadAll() {
+				try {
+					await Promise.all([
+						loadPoints(),
+						loadMapPoints() // Pridané načítanie bodov
+					]);
+					// Po načítaní inicializujte mapu
+					initializeMap();
+				} catch (error) {
+					console.error('Chyba pri načítaní dát:', error);
+				}
+			}
+			
+			let isDragging = false;
+			let startX, startY;
+			let offsetX = 0, offsetY = 0;
+			let sever = 10;
+			let zapad = 10;
+			let juh = 10;
+			let vychod = 10;
+			let zoom = 1;
+			let mapLines = [];
+			let activeConnections = [];
+			let tileElements = new Map();
+			
+			function findPoint(id) {
+				return points.find(point => point.id === id);
+			}
+
+			function updateGridProperties() {
+				const grid = document.getElementById('mapGrid');
+				const columns = zapad + vychod;
+				const rows = sever + juh;
+				grid.style.setProperty('--columns', columns);
+				grid.style.setProperty('--rows', rows);
+			}
+
+			function isElementInViewport(el) {
+				const container = document.getElementById('mapContainer');
+				const containerRect = container.getBoundingClientRect();
+				const rect = el.getBoundingClientRect();
+
+				return (
+					rect.top <= containerRect.bottom &&
+					rect.bottom >= containerRect.top &&
+					rect.left <= containerRect.right &&
+					rect.right >= containerRect.left
+				);
+			}
+
+			function updateVisibleTiles() {
+				const baseUrl = `https://images.weserv.nl/?url=http://mox.chita.cz:8080/basic/0/0/0/tiles/basic/2/`;
+				tileElements.forEach((img, key) => {
+					if (isElementInViewport(img)) {
+						if (!img.src) {
+							const [x, z] = key.split('_').map(Number);
+							img.src = `${baseUrl}${62 + x}_${62 + z}.webp`;
+						}
+					}
+				});
+			}
+
+			function createMapTiles() {
+				const grid = document.getElementById('mapGrid');
+				grid.innerHTML = '';
+				tileElements.clear();
+				
+				for (let z = -sever; z < juh; z++) {
+					for (let x = -zapad; x < vychod; x++) {
+						const img = document.createElement('img');
+						img.alt = `Map tile ${x}_${z}`;
+						img.className = 'map-tile';
+						img.draggable = false;
+						
+						const key = `${x}_${z}`;
+						tileElements.set(key, img);
+						grid.appendChild(img);
+					}
+				}
+				updateGridProperties();
+				updateVisibleTiles();
+			}
+
+			function startDrag(e) {
+				isDragging = true;
+				startX = e.clientX - offsetX;
+				startY = e.clientY - offsetY;
+				document.getElementById('mapContainer').style.cursor = 'grabbing';
+			}
+
+			function dragMove(e) {
+				if (!isDragging) return;
+
+				const dx = e.clientX - startX;
+				const dy = e.clientY - startY;
+
+				offsetX = dx;
+				offsetY = dy;
+
+				const grid = document.getElementById('mapGrid');
+				grid.style.transform = `translate(${dx}px, ${dy}px) scale(${zoom})`;
+				
+				// Pridajte aktualizáciu pozície bodov
+				updatePointPositions();
+				
+				// Kontrola viditeľných dlaždíc pri posúvaní
+				updateVisibleTiles();
+			}
+
+			function stopDrag() {
+				isDragging = false;
+				document.getElementById('mapContainer').style.cursor = 'grab';
+				updateVisibleTiles();
+			}
+
+			function getMouseMapPosition(e) {
+				const mapContainer = document.getElementById('mapContainer');
+				const rect = mapContainer.getBoundingClientRect();
+				const mouseX = e.clientX - rect.left;
+				const mouseY = e.clientY - rect.top;
+				
+				const mapX = Math.floor((mouseX - offsetX)/ zoom - 512 * zapad) * 2 -512;
+				const mapZ = Math.floor((mouseY - offsetY)/ zoom - 512 * sever) * 2 -512;
+				
+				const positionDisplay = document.getElementById('position');
+				positionDisplay.textContent = `x: ${mapX}, z: ${mapZ}`;
+				
+				return { mapX, mapZ };
+			}
+
+			function zoomMap(e) {
+				e.preventDefault();
+
+				const oldZoom = zoom;
+				if (e.deltaY < 0) {
+					zoom *= 1.1;
+				} else {
+					zoom /= 1.1;
+				}
+				zoom = Math.min(Math.max(zoom, 0.05), 5);
+
+				const mapContainer = document.getElementById('mapContainer');
+				const rect = mapContainer.getBoundingClientRect();
+				const mouseX = e.clientX - rect.left;
+				const mouseY = e.clientY - rect.top;
+
+				const mouseXBeforeZoom = (mouseX - offsetX) / oldZoom;
+				const mouseYBeforeZoom = (mouseY - offsetY) / oldZoom;
+
+				const mouseXAfterZoom = mouseXBeforeZoom * zoom;
+				const mouseYAfterZoom = mouseYBeforeZoom * zoom;
+
+				offsetX = mouseX - mouseXAfterZoom;
+				offsetY = mouseY - mouseYAfterZoom;
+
+				const grid = document.getElementById('mapGrid');
+				grid.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
+				
+				// Pridajte aktualizáciu pozície bodov
+				updatePointPositions();
+				
+				// Kontrola viditeľných dlaždíc pri zoomovaní
+				updateVisibleTiles();
+			}
+
+			// Throttling funkcia pre optimalizáciu výkonu
+			function throttle(func, limit) {
+				let inThrottle;
+				return function(...args) {
+					if (!inThrottle) {
+						func.apply(this, args);
+						inThrottle = true;
+						setTimeout(() => inThrottle = false, limit);
+					}
+				}
+			}
+			
+			function activateLine(pointId) {
+				const relevantConnections = connections.filter(conn => 
+					conn.from === pointId || conn.to === pointId
+				);
+				
+				relevantConnections.forEach((connection, index) => {
+					const point1 = findPoint(connection.from);
+					const point2 = findPoint(connection.to);
+					if (point1 && point2) {
+						mapLines[index].style.display = 'block';
+						activeConnections[index] = {
+							startX: point1.x,
+							startZ: point1.z,
+							endX: point2.x,
+							endZ: point2.z
+						};
+						updateLinePositions();
+					}
+				});
+			}
+
+			window.onload = function () {
+				loadAll(); // Načítajte dáta pred inicializáciou mapy
+
+				const mapContainer = document.getElementById('mapContainer');
+				mapContainer.addEventListener('mousedown', startDrag);
+				mapContainer.addEventListener('mousemove', (e) => {
+					if (isDragging) {
+						dragMove(e);
+					}
+					getMouseMapPosition(e);
+				});
+				mapContainer.addEventListener('mouseup', stopDrag);
+				mapContainer.addEventListener('mouseleave', stopDrag);
+				mapContainer.addEventListener('wheel', throttle(zoomMap, 50));
+
+				window.addEventListener('resize', throttle(updateVisibleTiles, 100));
+			}
+			
+			function deactivateLine() {
+				mapLines.forEach(line => {
+					line.style.display = 'none';
+				});
+				activeConnections = [];
+			}
+
+			// Vytvorenie a aktualizácia bodov na mape
+			function createMapPoints() {
+				points.forEach(point => {
+					const pointElement = document.createElement('div');
+					pointElement.className = `map-point map-point-${point.type}`;
+					pointElement.id = `point-${point.id}`;
+					
+					const label = document.createElement('div');
+					label.className = 'point-label';
+					
+					const nameDiv = document.createElement('div');
+					nameDiv.className = 'point-name';
+					nameDiv.textContent = point.name;
+					
+					const coordsDiv = document.createElement('div');
+					coordsDiv.className = 'point-coordinates';
+					coordsDiv.textContent = `${point.x}/${point.y}/${point.z}`;
+					
+					label.appendChild(nameDiv);
+					label.appendChild(coordsDiv);
+					pointElement.appendChild(label);
+					
+					// Add event listeners to all points that are part of connections
+					if (connections.some(conn => conn.from === point.id || conn.to === point.id)) {
+						pointElement.addEventListener('mouseenter', () => activateLine(point.id));
+						pointElement.addEventListener('mouseleave', deactivateLine);
+					}
+					
+					mapGrid.appendChild(pointElement);
+				});
+			}
+			
+			function updatePointPositions() {
+				points.forEach(point => {
+					const pointElement = document.getElementById(`point-${point.id}`);
+					if (pointElement) {
+						// Upravte výpočet pozície tak, aby bral do úvahy offsetX a offsetY
+						const x = ((point.x / 2) + 512 * zapad) + 256;
+						const z = ((point.z / 2) + 512 * sever) + 256;
+						pointElement.style.left = `${x}px`;
+						pointElement.style.top = `${z}px`;
+						pointElement.style.transform = `translate(-50%, -50%) scale(${1/zoom})`;
+					}
+				});
+			}
+
+			function checkVisibility() {
+				const containerRect = mapContainer.getBoundingClientRect();
+				
+				tiles.forEach(tile => {
+					const tileRect = tile.getBoundingClientRect();
+					const img = tile.querySelector('img');
+					
+					const isVisible = !(
+						tileRect.right < containerRect.left ||
+						tileRect.left > containerRect.right ||
+						tileRect.bottom < containerRect.top ||
+						tileRect.top > containerRect.bottom
+					);
+					
+					img.style.display = isVisible ? 'block' : 'none';
+				});
+			}
+			
+			function createConnections(points) {
+				// Rozdelíme body do skupín podľa poradia
+				const pointGroups = {};
+				
+				// Zoskupenie bodov podľa ich prefixu (a1, b1, a2, b2...)
+				points.forEach(point => {
+					const match = point.id.match(/([ab])(\d+)/);
+					if (match) {
+						const prefix = match[1];
+						const number = match[2];
+						
+						if (!pointGroups[number]) {
+							pointGroups[number] = {};
+						}
+						pointGroups[number][prefix] = point.id;
+					}
+				});
+				
+				// Vytvorenie spojení
+				const connections = [];
+				
+				// Prejdeme všetky spárované body
+				Object.values(pointGroups).forEach(pair => {
+					// Pridáme spojenie len ak existujú oba body (a aj b)
+					if (pair.a && pair.b) {
+						connections.push({
+							from: pair.a,
+							to: pair.b
+						});
+					}
+				});
+				
+				return connections;
+			}
+			
+			// Pridáme funkciu na vytvorenie čiary
+			function createMapLines() {
+				connections.forEach(() => {
+					const line = document.createElement('div');
+					line.className = 'map-line';
+					line.style.display = 'none'; // Hide by default
+					mapGrid.appendChild(line);
+					mapLines.push(line);
+				});
+			}
+			
+			function updateLinePosition(line, x1, z1, x2, z2) {
+				const startX = ((x1/2) + 512 * zapad) + 256;
+				const startZ = ((z1/2) + 512 * sever) + 256;
+				const endX = ((x2/2) + 512 * zapad) + 256;
+				const endZ = ((z2/2) + 512 * sever) + 256;
+
+				const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endZ - startZ, 2));
+				const angle = Math.atan2(endZ - startZ, endX - startX) * 180 / Math.PI;
+
+				line.style.width = `${length}px`;
+				line.style.left = `${startX}px`;
+				line.style.top = `${startZ}px`;
+				line.style.transform = `rotate(${angle}deg) scale(${1/zoom})`;
+			}
+			
+			// Funkcia na aktualizáciu pozície a rotácie čiary		
+			function updateLinePositions() {
+				activeConnections.forEach((connection, index) => {
+					if (connection) {
+						updateLinePosition(
+							mapLines[index],
+							connection.startX,
+							connection.startZ,
+							connection.endX,
+							connection.endZ
+						);
+					}
+				});
+			}
+			
+			function initializeMap() {
+				createMapTiles();
+				createMapLines();
+				createMapPoints();
+				updatePointPositions();
+				updateVisibleTiles();
+			}
+		</script>
+	</body>
+</html>
