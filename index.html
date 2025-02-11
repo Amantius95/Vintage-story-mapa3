@@ -559,9 +559,12 @@
 				createMapTiles();
 				createMapLines();
 				createMapPoints();
-				centerMap();
-				updatePointPositions();
-				updateVisibleTiles();
+				
+				// Pridáme malé oneskorenie pre istotu
+				setTimeout(() => {
+					centerMap();
+					updatePointPositions();
+				}, 100);
 			}
 		</script>
 	</body>
