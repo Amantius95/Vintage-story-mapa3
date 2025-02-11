@@ -536,12 +536,12 @@
 				const containerHeight = mapContainer.clientHeight;
 				
 				// Vypočítame celkovú šírku a výšku mriežky v pixeloch
-				const gridWidth = (zapad + vychod) * 512;
-				const gridHeight = (sever + juh) * 512;
+				const gridWidth = zapad * 512 + 256;
+				const gridHeight = sever * 512 + 256;
 				
 				// Vypočítame počiatočný offset tak, aby bol stred mriežky v strede kontajnera
-				offsetX = (containerWidth - gridWidth) / 2;
-				offsetY = (containerHeight - gridHeight) / 2;
+				offsetX = (containerWidth - gridWidth);
+				offsetY = (containerHeight - gridHeight);
 				
 				// Aplikujeme transformáciu
 				const grid = document.getElementById('mapGrid');
@@ -550,6 +550,7 @@
 				// Aktualizujeme pozície bodov a čiar
 				updatePointPositions();
 				updateLinePositions();
+				updateVisibleTiles();
 			}
 			
 						
