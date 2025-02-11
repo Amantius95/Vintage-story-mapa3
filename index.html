@@ -94,6 +94,21 @@
 				text-align: center;
 			}
 			
+			.point-name {
+				font-size: 14px;
+				font-weight: bold;
+				margin-bottom: 1px;
+			}
+
+			.point-coordinates {
+				font-size: 12px;
+				color: #666;
+			}
+
+			.map-point:hover .point-label {
+				display: block;
+			}
+			
 			.map-line {
 				position: absolute;
 				height: 2px;
@@ -427,7 +442,6 @@
 				points.forEach(point => {
 					const pointElement = document.getElementById(`point-${point.id}`);
 					if (pointElement) {
-						// Upravte výpočet pozície tak, aby bral do úvahy offsetX a offsetY
 						const x = ((point.x / 4) + 512 * zapad) + 256;
 						const z = ((point.z / 4) + 512 * sever) + 256;
 						pointElement.style.left = `${x}px`;
