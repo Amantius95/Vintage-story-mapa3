@@ -506,7 +506,7 @@
 				const endX = ((x2/4) + 512 * zapad) + 256;
 				const endZ = ((z2/4) + 512 * sever) + 256;
 
-				const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endZ - startZ, 2));
+				const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endZ - startZ, 2)) * zoom;
 				const angle = Math.atan2(endZ - startZ, endX - startX) * 180 / Math.PI;
 
 				line.style.width = `${length}px`;
