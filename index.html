@@ -427,8 +427,8 @@
 					const pointElement = document.getElementById(`point-${point.id}`);
 					if (pointElement) {
 						// Upravte výpočet pozície tak, aby bral do úvahy offsetX a offsetY
-						const x = ((point.x / 4) + 512 * zapad);
-						const z = ((point.z / 4) + 512 * sever);
+						const x = ((point.x / 4) + 512 * zapad) - 512;
+						const z = ((point.z / 4) + 512 * sever) - 512;
 						pointElement.style.left = `${x}px`;
 						pointElement.style.top = `${z}px`;
 						pointElement.style.transform = `translate(-50%, -50%) scale(${1/zoom})`;
@@ -501,10 +501,10 @@
 			}
 			
 			function updateLinePosition(line, x1, z1, x2, z2) {
-				const startX = ((x1/4) + 512 * zapad);
-				const startZ = ((z1/4) + 512 * sever);
-				const endX = ((x2/4) + 512 * zapad);
-				const endZ = ((z2/4) + 512 * sever);
+				const startX = ((x1/4) + 512 * zapad) - 512;
+				const startZ = ((z1/4) + 512 * sever) - 512;
+				const endX = ((x2/4) + 512 * zapad) - 512;
+				const endZ = ((z2/4) + 512 * sever) - 512;
 
 				const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endZ - startZ, 2));
 				const angle = Math.atan2(endZ - startZ, endX - startX) * 180 / Math.PI;
