@@ -201,8 +201,8 @@
 			let startX, startY;
 			let offsetX = 0, offsetY = 0;
 			let sever = 10;
-			let zapad = 10;
-			let juh = 10;
+			let zapad = 11;
+			let juh = 12;
 			let vychod = 10;
 			let zoom = 1;
 			let mapLines = [];
@@ -236,12 +236,12 @@
 			}
 
 			function updateVisibleTiles() {
-				const baseUrl = `https://images.weserv.nl/?url=http://mox.chita.cz:8080/basic/0/0/0/tiles/basic/2/`;
+				const baseUrl = `https://images.weserv.nl/?url=http://mox.chita.cz:8080/basic/0/0/0/`;
 				tileElements.forEach((img, key) => {
 					if (isElementInViewport(img)) {
 						if (!img.src) {
 							const [x, z] = key.split('_').map(Number);
-							img.src = `${baseUrl}${62 + x}_${62 + z}.webp`;
+							img.src = `${baseUrl}tiles/basic/2/${62 + x}_${62 + z}.webp`;
 						}
 					}
 				});
@@ -572,6 +572,14 @@
 				// Aktualizujeme pozície bodov a čiar
 				updatePointPositions();
 				updateLinePositions();
+			}
+			
+			function getCurrentDate() {
+				const today = new Date();
+				const year = today.getFullYear();
+				const month = String(today.getMonth() + 1).padStart(2, '0'); // Mesiac je od 0
+				const day = String(today.getDate()).padStart(2, '0');
+				return `${year}${month}/${day}`;
 			}
 			
 						
