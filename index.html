@@ -208,12 +208,13 @@
 				const container = document.getElementById('mapContainer');
 				const containerRect = container.getBoundingClientRect();
 				const rect = el.getBoundingClientRect();
-
+				
+				// Upravíme kontrolu o offsetové hodnoty
 				return (
-					rect.top <= containerRect.bottom &&
-					rect.bottom >= containerRect.top &&
-					rect.left <= containerRect.right &&
-					rect.right >= containerRect.left
+					rect.top - offsetY <= containerRect.bottom &&
+					rect.bottom - offsetY >= containerRect.top &&
+					rect.left - offsetX <= containerRect.right &&
+					rect.right - offsetX >= containerRect.left
 				);
 			}
 
@@ -536,8 +537,8 @@
 				const containerHeight = mapContainer.clientHeight;
 				
 				// Vypočítame celkovú šírku a výšku mriežky v pixeloch
-				const gridWidth = zapad * 512 + 256;
-				const gridHeight = sever * 512 + 256;
+				const gridWidth = zapad * 512 + 512;
+				const gridHeight = sever * 512 + 512;
 				
 				// Vypočítame počiatočný offset tak, aby bol stred mriežky v strede kontajnera
 				offsetX = (containerWidth - gridWidth);
