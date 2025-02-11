@@ -236,11 +236,13 @@
 			}
 
 			function updateVisibleTiles() {
-				const baseUrl = `https://images.weserv.nl/?url=http://mox.chita.cz:8080/basic/0/0/0/`;
+				const { year, month, day } = getCurrentDate(); // Získanie dátumu
+				const baseUrl = `https://images.weserv.nl/?url=http://mox.chita.cz:8080/basic/0/${month}/${year}/`;
 				tileElements.forEach((img, key) => {
 					if (isElementInViewport(img)) {
 						if (!img.src) {
 							const [x, z] = key.split('_').map(Number);
+							// Dynamicky sa vkladá cesta s dátumom
 							img.src = `${baseUrl}tiles/basic/2/${62 + x}_${62 + z}.webp`;
 						}
 					}
@@ -579,7 +581,7 @@
 				const year = today.getFullYear();
 				const month = String(today.getMonth() + 1).padStart(2, '0'); // Mesiac je od 0
 				const day = String(today.getDate()).padStart(2, '0');
-				return `${year}${month}/${day}`;
+				return { year, month, day }; // Vráti objekt s rokom, mesiacom a dňom
 			}
 			
 						
