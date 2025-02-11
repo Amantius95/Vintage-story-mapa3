@@ -530,10 +530,34 @@
 				});
 			}
 			
+			function centerMap() {
+				const mapContainer = document.getElementById('mapContainer');
+				const containerWidth = mapContainer.clientWidth;
+				const containerHeight = mapContainer.clientHeight;
+				
+				// Vypočítame celkovú šírku a výšku mriežky v pixeloch
+				const gridWidth = (zapad + vychod) * 512;
+				const gridHeight = (sever + juh) * 512;
+				
+				// Vypočítame počiatočný offset tak, aby bol stred mriežky v strede kontajnera
+				offsetX = (containerWidth - gridWidth) / 2;
+				offsetY = (containerHeight - gridHeight) / 2;
+				
+				// Aplikujeme transformáciu
+				const grid = document.getElementById('mapGrid');
+				grid.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
+				
+				// Aktualizujeme pozície bodov a čiar
+				updatePointPositions();
+				updateLinePositions();
+			}
+			
+						
 			function initializeMap() {
 				createMapTiles();
 				createMapLines();
 				createMapPoints();
+				centerMap();
 				updatePointPositions();
 				updateVisibleTiles();
 			}
