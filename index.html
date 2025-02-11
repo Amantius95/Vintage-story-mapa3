@@ -548,10 +548,14 @@
 				const grid = document.getElementById('mapGrid');
 				grid.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
 				
+				tileElements.forEach((img, key) => {
+					const [x, z] = key.split('_').map(Number);
+					img.src = `https://images.weserv.nl/?url=http://mox.chita.cz:8080/basic/0/0/0/tiles/basic/2/${62 + x}_${62 + z}.webp`;
+				});
+				
 				// Aktualizujeme pozície bodov a čiar
 				updatePointPositions();
 				updateLinePositions();
-				updateVisibleTiles();
 			}
 			
 						
