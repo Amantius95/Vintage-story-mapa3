@@ -119,6 +119,38 @@
 				pointer-events: none;
 				z-index: 900;
 			}
+			
+			.search-container {
+				position: fixed;
+				top: 60px;
+				left: 10px;
+				background: rgba(255, 255, 255, 0.8);
+				padding: 5px;
+				border-radius: 3px;
+				z-index: 1000;
+			}
+
+			.search-results {
+				position: absolute;
+				top: 100%;
+				left: 0;
+				background: white;
+				border: 1px solid #ccc;
+				border-radius: 3px;
+				max-height: 200px;
+				overflow-y: auto;
+				width: 100%;
+				display: none;
+			}
+
+			.search-result-item {
+				padding: 5px;
+				cursor: pointer;
+			}
+
+			.search-result-item:hover {
+				background-color: #f0f0f0;
+			}
 		</style>
 	</head>
 	<body onload="loadAll()">
@@ -126,6 +158,10 @@
 		<div class="coordinates">
 			Pozícia: <span id="position">x: 0, z: 0</span><br>
 			<div id="testData" class="test-data"></div>
+		</div>
+		<div class="search-container">
+			<input type="text" id="searchInput" placeholder="Vyhľadať bod...">
+			<div id="searchResults" class="search-results"></div>
 		</div>
 		<div class="map-container" id="mapContainer">
 			<div class="map-grid" id="mapGrid"></div>
@@ -200,7 +236,7 @@
 			let isDragging = false;
 			let startX, startY;
 			let offsetX = 0, offsetY = 0;
-			let sever = 10;
+			let sever = 8;
 			let zapad = 11;
 			let juh = 12;
 			let vychod = 10;
@@ -387,7 +423,7 @@
 
 			window.onload = function () {
 				loadAll(); // Načítajte dáta pred inicializáciou mapy
-
+				
 				const mapContainer = document.getElementById('mapContainer');
 				mapContainer.addEventListener('mousedown', startDrag);
 				mapContainer.addEventListener('mousemove', (e) => {
@@ -399,8 +435,22 @@
 				mapContainer.addEventListener('mouseup', stopDrag);
 				mapContainer.addEventListener('mouseleave', stopDrag);
 				mapContainer.addEventListener('wheel', throttle(zoomMap, 50));
-
+				
 				window.addEventListener('resize', throttle(updateVisibleTiles, 100));
+				
+				// Nové event listenery pre vyhľadávanie
+				const searchInput = document.getElementById('searchInput');
+				searchInput.addEventListener('input', (e) => {
+					filterPoints(e.target.value);
+				});
+
+				// Skrytie výsledkov pri kliknutí mimo
+				document.addEventListener('click', (e) => {
+					const searchResults = document.getElementById('searchResults');
+					if (!searchResults.contains(e.target) && e.target !== searchInput) {
+						searchResults.style.display = 'none';
+					}
+				});
 			}
 			
 			function deactivateLine() {
@@ -585,7 +635,69 @@
 				return { year, month, day }; // Vráti objekt s rokom, mesiacom a dňom
 			}
 			
+			function highlightPoint(pointId) {
+				// Najprv zrušíme všetky zvýraznenia
+				points.forEach(point => {
+					const pointElement = document.getElementById(`point-${point.id}`);
+					if (pointElement) {
+						pointElement.style.transform = `translate(-50%, -50%) scale(${1/zoom})`;
+					}
+				});
+
+				// Zvýrazníme vyhľadaný bod
+				const pointElement = document.getElementById(`point-${pointId}`);
+				if (pointElement) {
+					pointElement.style.transform = `translate(-50%, -50%) scale(${1.5/zoom})`;
+					
+					// Vycentrujeme mapu na bod
+					const point = points.find(p => p.id === pointId);
+					if (point) {
+						const mapContainer = document.getElementById('mapContainer');
+						const containerWidth = mapContainer.offsetWidth;
+						const containerHeight = mapContainer.offsetHeight;
 						
+						// Vypočítame pozíciu bodu v pixeloch
+						const pointPixelX = ((point.x / 4) + 512 * zapad) + 256;
+						const pointPixelZ = ((point.z / 4) + 512 * sever) + 256;
+						
+						// Vypočítame novú pozíciu pre vycentrovanie
+						offsetX = -(pointPixelX * zoom - containerWidth/2);
+						offsetY = -(pointPixelZ * zoom - containerHeight/2);
+						
+						const grid = document.getElementById('mapGrid');
+						grid.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
+						updatePointPositions();
+						updateLinePositions();
+					}
+				}
+			}
+
+			function filterPoints(searchText) {
+				const filtered = points.filter(point => 
+					point.name.toLowerCase().includes(searchText.toLowerCase())
+				);
+				
+				const searchResults = document.getElementById('searchResults');
+				searchResults.innerHTML = '';
+				
+				if (filtered.length > 0 && searchText.length > 0) {
+					filtered.forEach(point => {
+						const div = document.createElement('div');
+						div.className = 'search-result-item';
+						div.textContent = point.name;
+						div.onclick = () => {
+							highlightPoint(point.id);
+							searchResults.style.display = 'none';
+							document.getElementById('searchInput').value = point.name;
+						};
+						searchResults.appendChild(div);
+					});
+					searchResults.style.display = 'block';
+				} else {
+					searchResults.style.display = 'none';
+				}
+			}
+					
 			function initializeMap() {
 				createMapTiles();
 				createMapLines();
