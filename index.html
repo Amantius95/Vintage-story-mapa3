@@ -160,6 +160,15 @@
 				transform: scale(1.2);
 				z-index: 1003;
 			}
+			
+			.tunnel-line {
+				position: absolute;
+				height: 3px;
+				background-color: #b56824;  /* tmavšia farba */
+				transform-origin: 0 50%;
+				pointer-events: none;
+				z-index: 900;
+			}
 		</style>
 	</head>
 	<body onload="loadAll()">
@@ -255,6 +264,11 @@
 			let tileElements = new Map();
 			let activePointId = null;
 			
+			const tunnels = [
+				{ T1: { x: -2605, z: -5199 }, T2: { x: -2320, z: -5152 }, T3: { x: -1119, z: -4646 }},
+				{ T1: { x: -3334, z: 2310 }, T2: { x: -3000, z: 3100 }}
+			];
+			
 			function findPoint(id) {
 				return points.find(point => point.id === id);
 			}
@@ -340,6 +354,7 @@
 				
 				// Kontrola viditeľných dlaždíc pri posúvaní
 				updateVisibleTiles();
+				updateTunnelPositions();
 			}
 
 			function stopDrag() {
@@ -396,6 +411,7 @@
 				
 				// Kontrola viditeľných dlaždíc pri zoomovaní
 				updateVisibleTiles();
+				updateTunnelPositions();
 			}
 
 			// Throttling funkcia pre optimalizáciu výkonu
@@ -758,16 +774,69 @@
 				activeConnections = [];
 				activePointId = null;
 			}
+			
+			function createTunnelLines() {
+				tunnels.forEach((tunnel, index) => {
+					const paths = [];
+					// Create a line for each tunnel segment
+					for (let i = 1; i <= Object.keys(tunnel).length - 1; i++) {
+						const line = document.createElement('div');
+						line.className = 'tunnel-line';
+						line.id = `tunnel-${index}-segment-${i}`;
+						mapGrid.appendChild(line);
+						paths.push(line);
+					}
+				});
+			}
+			
+			function updateTunnelPositions() {
+				tunnels.forEach((tunnel, tunnelIndex) => {
+					const points = Object.values(tunnel);
+					
+					// For each tunnel segment
+					for (let i = 0; i < points.length - 1; i++) {
+						const start = points[i];
+						const end = points[i + 1];
+						const tunnelLine = document.getElementById(`tunnel-${tunnelIndex}-segment-${i + 1}`);
+						
+						if (tunnelLine) {
+							const startX = ((start.x/4) + 512 * zapad) + 256;
+							const startZ = ((start.z/4) + 512 * sever) + 256;
+							const endX = ((end.x/4) + 512 * zapad) + 256;
+							const endZ = ((end.z/4) + 512 * sever) + 256;
+
+							const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endZ - startZ, 2));
+							const angle = Math.atan2(endZ - startZ, endX - startX) * 180 / Math.PI;
+
+							tunnelLine.style.width = `${length}px`;
+							tunnelLine.style.left = `${startX}px`;
+							tunnelLine.style.top = `${startZ}px`;
+							tunnelLine.style.transformOrigin = '0 50%';
+							tunnelLine.style.transform = `rotate(${angle}deg)`;
+							tunnelLine.style.height = `${3 / zoom}px`;
+							tunnelLine.style.background = `repeating-linear-gradient(
+								90deg,
+								#b56824,
+								#b56824 ${10 / zoom}px,
+								transparent ${10 / zoom}px,
+								transparent ${20 / zoom}px
+							)`;
+						}
+					}
+				});
+			}
 					
 			function initializeMap() {
 				createMapTiles();
 				createMapLines();
+				createTunnelLines();
 				createMapPoints();
 				
 				// Pridáme malé oneskorenie pre istotu
 				setTimeout(() => {
 					centerMap();
 					updatePointPositions();
+					updateTunnelPositions();
 				}, 100);
 			}
 		</script>
