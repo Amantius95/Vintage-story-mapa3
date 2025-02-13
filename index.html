@@ -241,8 +241,12 @@
 			async function loadTunnels() {
 				try {
 					const response = await fetch('Data/tunnels.json');
+					if (!response.ok) {
+						throw new Error(`HTTP error! status: ${response.status}`);
+					}
 					tunnels = await response.json();
-					console.log('Tunnels loaded:', tunnels);
+					console.log('Tunely úspešne načítané:', tunnels);
+					return tunnels;
 				} catch (error) {
 					console.error('Error loading tunnels:', error);
 				}
