@@ -151,6 +151,11 @@
 			.search-result-item:hover {
 				background-color: #f0f0f0;
 			}
+			
+			.map-point.active {
+				transform: scale(1.2);
+				z-index: 1003;
+			}
 		</style>
 	</head>
 	<body onload="loadAll()">
@@ -244,6 +249,7 @@
 			let mapLines = [];
 			let activeConnections = [];
 			let tileElements = new Map();
+			let activePointId = null;
 			
 			function findPoint(id) {
 				return points.find(point => point.id === id);
@@ -482,13 +488,28 @@
 					label.appendChild(coordsDiv);
 					pointElement.appendChild(label);
 					
-					// Add event listeners to all points that are part of connections
+					// Replace hover events with click event
 					if (connections.some(conn => conn.from === point.id || conn.to === point.id)) {
-						pointElement.addEventListener('mouseenter', () => activateLine(point.id));
-						pointElement.addEventListener('mouseleave', deactivateLine);
+						pointElement.addEventListener('click', (e) => {
+							e.stopPropagation(); // Prevent map dragging when clicking points
+							
+							// If clicking the same point, deactivate it
+							if (activePointId === point.id) {
+								deactivatePoint();
+							} else {
+								activatePoint(point.id);
+							}
+						});
 					}
 					
 					mapGrid.appendChild(pointElement);
+				});
+				
+				// Add click event to map container to deactivate points when clicking elsewhere
+				document.getElementById('mapContainer').addEventListener('click', (e) => {
+					if (e.target.classList.contains('map-container')) {
+						deactivatePoint();
+					}
 				});
 			}
 			
@@ -636,39 +657,26 @@
 			}
 			
 			function highlightPoint(pointId) {
-				// Najprv zrušíme všetky zvýraznenia
-				points.forEach(point => {
-					const pointElement = document.getElementById(`point-${point.id}`);
-					if (pointElement) {
-						pointElement.style.transform = `translate(-50%, -50%) scale(${1/zoom})`;
-					}
-				});
-
-				// Zvýrazníme vyhľadaný bod
-				const pointElement = document.getElementById(`point-${pointId}`);
-				if (pointElement) {
-					pointElement.style.transform = `translate(-50%, -50%) scale(${1.5/zoom})`;
+				// Activate the point and show connections
+				activatePoint(pointId);
+				
+				// Center the map on the point
+				const point = points.find(p => p.id === pointId);
+				if (point) {
+					const mapContainer = document.getElementById('mapContainer');
+					const containerWidth = mapContainer.offsetWidth;
+					const containerHeight = mapContainer.offsetHeight;
 					
-					// Vycentrujeme mapu na bod
-					const point = points.find(p => p.id === pointId);
-					if (point) {
-						const mapContainer = document.getElementById('mapContainer');
-						const containerWidth = mapContainer.offsetWidth;
-						const containerHeight = mapContainer.offsetHeight;
-						
-						// Vypočítame pozíciu bodu v pixeloch
-						const pointPixelX = ((point.x / 4) + 512 * zapad) + 256;
-						const pointPixelZ = ((point.z / 4) + 512 * sever) + 256;
-						
-						// Vypočítame novú pozíciu pre vycentrovanie
-						offsetX = -(pointPixelX * zoom - containerWidth/2);
-						offsetY = -(pointPixelZ * zoom - containerHeight/2);
-						
-						const grid = document.getElementById('mapGrid');
-						grid.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
-						updatePointPositions();
-						updateLinePositions();
-					}
+					const pointPixelX = ((point.x / 4) + 512 * zapad) + 256;
+					const pointPixelZ = ((point.z / 4) + 512 * sever) + 256;
+					
+					offsetX = -(pointPixelX * zoom - containerWidth/2);
+					offsetY = -(pointPixelZ * zoom - containerHeight/2);
+					
+					const grid = document.getElementById('mapGrid');
+					grid.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
+					updatePointPositions();
+					updateLinePositions();
 				}
 			}
 
@@ -696,6 +704,55 @@
 				} else {
 					searchResults.style.display = 'none';
 				}
+			}
+			
+			function activatePoint(pointId) {
+				// Deactivate previous point if exists
+				deactivatePoint();
+				
+				// Activate new point
+				activePointId = pointId;
+				const pointElement = document.getElementById(`point-${pointId}`);
+				if (pointElement) {
+					pointElement.classList.add('active');
+				}
+				
+				// Show relevant connections
+				const relevantConnections = connections.filter(conn => 
+					conn.from === pointId || conn.to === pointId
+				);
+				
+				relevantConnections.forEach((connection, index) => {
+					const point1 = findPoint(connection.from);
+					const point2 = findPoint(connection.to);
+					if (point1 && point2) {
+						mapLines[index].style.display = 'block';
+						activeConnections[index] = {
+							startX: point1.x,
+							startZ: point1.z,
+							endX: point2.x,
+							endZ: point2.z
+						};
+						updateLinePositions();
+					}
+				});
+			}
+			
+			function deactivatePoint() {
+				// Remove active class from previous point
+				if (activePointId) {
+					const prevPointElement = document.getElementById(`point-${activePointId}`);
+					if (prevPointElement) {
+						prevPointElement.classList.remove('active');
+					}
+				}
+				
+				// Hide all lines
+				mapLines.forEach(line => {
+					line.style.display = 'none';
+				});
+				activeConnections = [];
+				activePointId = null;
 			}
 					
 			function initializeMap() {
