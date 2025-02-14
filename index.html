@@ -264,6 +264,12 @@
 					const response = await fetch('Data/dots.json');
 					const dotsData = await response.json();
 					
+					const mapGrid = document.getElementById('mapGrid'); // Explicitne získame mapGrid
+					if (!mapGrid) {
+						console.error('mapGrid not found');
+						return;
+					}
+					
 					// Pre každý bod v dots.json vytvoríme element na mape
 					dotsData.forEach(dot => {
 						const pointElement = document.createElement('div');
@@ -297,6 +303,10 @@
 							type: dot.type
 						});
 					});
+
+					// Aktualizujeme pozície bodov po ich pridaní
+					updatePointPositions();
+					
 				} catch (error) {
 					console.error('Error loading dots:', error);
 				}
