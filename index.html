@@ -248,11 +248,22 @@
 				vychod = parseInt(data.mapBounds.vychod);
 			}
 			
+			async function loadTunnels() {
+				try {
+					const response = await fetch('Data/tunnels.json');
+					tunnels = await response.json();
+					console.log('Tunnels loaded:', tunnels);
+				} catch (error) {
+					console.error('Error loading tunnels:', error);
+				}
+			}
+			
 			async function loadAll() {
 				try {
 					await Promise.all([
 						loadPoints(),
 						loadMapa(),
+						loadTunnels(),
 						loadMapPoints() // Pridané načítanie bodov
 					]);
 					// Po načítaní inicializujte mapu
@@ -274,11 +285,7 @@
 			let activeConnections = [];
 			let tileElements = new Map();
 			let activePointId = null;
-			
-			const tunnels = [
-				{ T1: { x: -2605, z: -5199 }, T2: { x: -2320, z: -5152 }, T3: { x: -1119, z: -4646 }},
-				{ T1: { x: -3334, z: 2310 }, T2: { x: -3000, z: 3100 }}
-			];
+			let tunnels = [];
 			
 			function findPoint(id) {
 				return points.find(point => point.id === id);
