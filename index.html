@@ -360,16 +360,7 @@
 
 			function updateVisibleTiles() {
 				const { year, month, day } = getCurrentDate(); // Získanie dátumu
-				const baseUrl = `https://images.weserv.nl/?url=http://mox.chita.cz:8080/basic/0/${month}/${year}/`;
-				tileElements.forEach((img, key) => {
-					if (isElementInViewport(img)) {
-						if (!img.src) {
-							const [x, z] = key.split('_').map(Number);
-							// Dynamicky sa vkladá cesta s dátumom
-							img.src = `${baseUrl}tiles/basic/2/${62 + x}_${62 + z}.webp`;
-						}
-					}
-				});
+				
 			}
 
 			function createMapTiles() {
