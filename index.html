@@ -259,12 +259,56 @@
 				}
 			}
 			
+			async function loadDots() {
+				try {
+					const response = await fetch('Data/dots.json');
+					const dotsData = await response.json();
+					
+					// Pre každý bod v dots.json vytvoríme element na mape
+					dotsData.forEach(dot => {
+						const pointElement = document.createElement('div');
+						pointElement.className = `map-point map-point-${dot.type}`; // Použije typ z JSON
+						
+						const label = document.createElement('div');
+						label.className = 'point-label';
+						
+						const nameDiv = document.createElement('div');
+						nameDiv.className = 'point-name';
+						nameDiv.textContent = dot.name;
+						
+						const coordsDiv = document.createElement('div');
+						coordsDiv.className = 'point-coordinates';
+						coordsDiv.textContent = `${dot.x}/${dot.y}/${dot.z}`;
+						
+						label.appendChild(nameDiv);
+						label.appendChild(coordsDiv);
+						pointElement.appendChild(label);
+						
+						// Pridáme bod do mapGrid
+						mapGrid.appendChild(pointElement);
+						
+						// Pridáme bod do globálneho poľa points
+						points.push({
+							id: `dot-${dot.name}`, // Unikátne ID pre dot body
+							name: dot.name,
+							x: dot.x,
+							y: dot.y,
+							z: dot.z,
+							type: dot.type
+						});
+					});
+				} catch (error) {
+					console.error('Error loading dots:', error);
+				}
+			}
+			
 			async function loadAll() {
 				try {
 					await Promise.all([
 						loadPoints(),
 						loadMap(),
 						loadTunnels(),
+						loadDots(),
 						loadMapPoints() // Pridané načítanie bodov
 					]);
 					// Po načítaní inicializujte mapu
