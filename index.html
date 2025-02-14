@@ -248,6 +248,7 @@
 					dotsData.forEach(dot => {
 						const pointElement = document.createElement('div');
 						pointElement.className = `map-point map-point-${dot.type}`; // Použije typ z JSON
+						pointElement.id = `dot-${dot.name}`; // Pridáme ID pre identifikáciu
 						
 						const label = document.createElement('div');
 						label.className = 'point-label';
@@ -267,14 +268,15 @@
 						// Pridáme bod do mapGrid
 						mapGrid.appendChild(pointElement);
 						
-						// Pridáme bod do globálneho poľa points
+						// Pridáme bod do globálneho poľa points s označením, že ide o dot
 						points.push({
-							id: `dot-${dot.name}`, // Unikátne ID pre dot body
+							id: `dot-${dot.name}`,
 							name: dot.name,
 							x: dot.x,
 							y: dot.y,
 							z: dot.z,
-							type: dot.type
+							type: dot.type,
+							isDot: true  // Označenie pre rozlíšenie typu bodu
 						});
 					});
 				} catch (error) {
@@ -598,10 +600,19 @@
 			
 			function updatePointPositions() {
 				points.forEach(point => {
-					const pointElement = document.getElementById(`point-${point.id}`);
+					const pointElement = document.getElementById(`${point.isDot ? 'dot-' : 'point-'}${point.id}`);
 					if (pointElement) {
-						const x = ((point.x / 4) + 512 * zapad) + 256;
-						const z = ((point.z / 4) + 512 * sever) + 256;
+						let x, z;
+						if (point.isDot) {
+							// Pre body z dots.json nepoužívame delenie 4
+							x = (point.x + 512 * zapad) + 256;
+							z = (point.z + 512 * sever) + 256;
+						} else {
+							// Pre body z points.json zachováme pôvodný výpočet
+							x = ((point.x / 4) + 512 * zapad) + 256;
+							z = ((point.z / 4) + 512 * sever) + 256;
+						}
+						
 						pointElement.style.left = `${x}px`;
 						pointElement.style.top = `${z}px`;
 						pointElement.style.transform = `translate(-50%, -50%) scale(${1/zoom})`;
@@ -888,6 +899,14 @@
 					}
 				});
 			}
+			
+			const style = document.createElement('style');
+			style.textContent = `
+				.map-point-home {
+					background-image: url('Data/Home.svg');
+				}
+			`;
+			document.head.appendChild(style);
 					
 			function initializeMap() {
 				createMapTiles();
