@@ -358,20 +358,6 @@
 				);
 			}
 
-			function updateVisibleTiles() {
-				const { year, month, day } = getCurrentDate(); // Získanie dátumu
-				const baseUrl = `https://images.weserv.nl/?url=http://mox.chita.cz:8080/basic/0/${month}/${year}/`;
-				tileElements.forEach((img, key) => {
-					if (isElementInViewport(img)) {
-						if (!img.src) {
-							const [x, z] = key.split('_').map(Number);
-							// Dynamicky sa vkladá cesta s dátumom
-							img.src = `${baseUrl}tiles/basic/2/${62 + x}_${62 + z}.webp`;
-						}
-					}
-				});
-			}
-
 			function createMapTiles() {
 				const grid = document.getElementById('mapGrid');
 				grid.innerHTML = '';
@@ -390,7 +376,6 @@
 					}
 				}
 				updateGridProperties();
-				updateVisibleTiles();
 			}
 
 			function startDrag(e) {
@@ -416,14 +401,12 @@
 				updatePointPositions();
 				
 				// Kontrola viditeľných dlaždíc pri posúvaní
-				updateVisibleTiles();
 				updateTunnelPositions();
 			}
 
 			function stopDrag() {
 				isDragging = false;
 				document.getElementById('mapContainer').style.cursor = 'grab';
-				updateVisibleTiles();
 			}
 
 			function getMouseMapPosition(e) {
@@ -473,7 +456,6 @@
 				updatePointPositions();
 				
 				// Kontrola viditeľných dlaždíc pri zoomovaní
-				updateVisibleTiles();
 				updateTunnelPositions();
 			}
 
@@ -525,7 +507,7 @@
 				mapContainer.addEventListener('mouseleave', stopDrag);
 				mapContainer.addEventListener('wheel', throttle(zoomMap, 50));
 				
-				window.addEventListener('resize', throttle(updateVisibleTiles, 100));
+				window.addEventListener('resize', throttle(100));
 				
 				// Nové event listenery pre vyhľadávanie
 				const searchInput = document.getElementById('searchInput');
