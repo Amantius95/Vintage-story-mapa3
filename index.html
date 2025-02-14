@@ -359,8 +359,13 @@
 			}
 
 			function updateVisibleTiles() {
-				const { year, month, day } = getCurrentDate(); // Získanie dátumu
-				
+				tileElements.forEach((img, key) => {
+					if (isElementInViewport(img)) {
+						if (!img.src) {
+							const [x, z] = key.split('_').map(Number);
+						}
+					}
+				});
 			}
 
 			function createMapTiles() {
