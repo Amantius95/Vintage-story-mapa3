@@ -264,32 +264,10 @@
 					const response = await fetch('Data/dots.json');
 					const dotsData = await response.json();
 					
-					// Pre každý bod v dots.json vytvoríme element na mape
+					// Vytvoříme nové body a přidáme je do globálního pole points
 					dotsData.forEach(dot => {
-						const pointElement = document.createElement('div');
-						pointElement.className = `map-point map-point-${dot.type}`; // Použije typ z JSON
-						
-						const label = document.createElement('div');
-						label.className = 'point-label';
-						
-						const nameDiv = document.createElement('div');
-						nameDiv.className = 'point-name';
-						nameDiv.textContent = dot.name;
-						
-						const coordsDiv = document.createElement('div');
-						coordsDiv.className = 'point-coordinates';
-						coordsDiv.textContent = `${dot.x}/${dot.y}/${dot.z}`;
-						
-						label.appendChild(nameDiv);
-						label.appendChild(coordsDiv);
-						pointElement.appendChild(label);
-						
-						// Pridáme bod do mapGrid
-						mapGrid.appendChild(pointElement);
-						
-						// Pridáme bod do globálneho poľa points
 						points.push({
-							id: `dot-${dot.name}`, // Unikátne ID pre dot body
+							id: `dot-${dot.name.replace(/\s+/g, '-')}`, // Vytvoříme bezpečné ID
 							name: dot.name,
 							x: dot.x,
 							y: dot.y,
@@ -307,11 +285,13 @@
 					await Promise.all([
 						loadPoints(),
 						loadMap(),
-						loadTunnels(),
-						loadDots(),
-						loadMapPoints() // Pridané načítanie bodov
+						loadTunnels()
 					]);
-					// Po načítaní inicializujte mapu
+					
+					await loadDots(); // Nejdřív načteme dots.json
+					await loadMapPoints(); // Pak teprve vytvoříme všechny body
+					
+					// Po načítaní inicializujeme mapu
 					initializeMap();
 				} catch (error) {
 					console.error('Chyba pri načítaní dát:', error);
