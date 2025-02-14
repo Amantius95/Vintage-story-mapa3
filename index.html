@@ -238,10 +238,21 @@
 				createMapPoints();
 			}
 			
+			async function loadMapa() {
+				const response = await fetch('Data/mapa.json');
+				const data = await response.json();
+				
+				sever = parseInt(data.mapBounds.sever);
+				zapad = parseInt(data.mapBounds.zapad);
+				juh = parseInt(data.mapBounds.juh);
+				vychod = parseInt(data.mapBounds.vychod);
+			}
+			
 			async function loadAll() {
 				try {
 					await Promise.all([
 						loadPoints(),
+						loadMapa(),
 						loadMapPoints() // Pridané načítanie bodov
 					]);
 					// Po načítaní inicializujte mapu
@@ -254,10 +265,10 @@
 			let isDragging = false;
 			let startX, startY;
 			let offsetX = 0, offsetY = 0;
-			let sever = 8;
-			let zapad = 11;
-			let juh = 12;
-			let vychod = 10;
+			let sever = 1;
+			let zapad = 1;
+			let juh = 1;
+			let vychod = 1;
 			let zoom = 1;
 			let mapLines = [];
 			let activeConnections = [];
