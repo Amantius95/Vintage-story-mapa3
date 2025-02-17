@@ -187,6 +187,20 @@
 		</div>
 
 		<script type="text/javascript">
+		
+			let isDragging = false;
+			let startX, startY;
+			let offsetX = 0, offsetY = 0;
+			let sever = 1;
+			let zapad = 1;
+			let juh = 1;
+			let vychod = 1;
+			let zoom = 1;
+			let mapLines = [];
+			let activeConnections = [];
+			let tileElements = new Map();
+			let activePointId = null;
+			let tunnels = [];
 			
 		
 			async function loadPoints() {
@@ -264,17 +278,19 @@
 					const response = await fetch('Data/dots.json');
 					const dotsData = await response.json();
 					
-					// Vytvoříme nové body a přidáme je do globálního pole points
+					// Pridáme nové body do existujúceho poľa points
 					dotsData.forEach(dot => {
 						points.push({
-							id: `dot-${dot.name.replace(/\s+/g, '-')}`, // Vytvoříme bezpečné ID
+							id: `dot-${dot.name.replace(/\s+/g, '-')}`,
 							name: dot.name,
 							x: dot.x,
 							y: dot.y,
 							z: dot.z,
-							type: dot.type
+							type: dot.type || 'pozor' // Pridáme defaultný typ ak nie je špecifikovaný
 						});
 					});
+					
+					console.log('All points after loading dots:', points); // Pre debug
 				} catch (error) {
 					console.error('Error loading dots:', error);
 				}
@@ -283,34 +299,18 @@
 			async function loadAll() {
 				try {
 					await Promise.all([
-						loadPoints(),
 						loadMap(),
 						loadTunnels()
 					]);
 					
-					await loadDots(); // Nejdřív načteme dots.json
-					await loadMapPoints(); // Pak teprve vytvoříme všechny body
+					await loadMapPoints(); // Najprv načítame základné body
+					await loadDots(); // Potom pridáme dots
 					
-					// Po načítaní inicializujeme mapu
-					initializeMap();
+					initializeMap(); // Až potom inicializujeme mapu
 				} catch (error) {
 					console.error('Chyba pri načítaní dát:', error);
 				}
 			}
-			
-			let isDragging = false;
-			let startX, startY;
-			let offsetX = 0, offsetY = 0;
-			let sever = 1;
-			let zapad = 1;
-			let juh = 1;
-			let vychod = 1;
-			let zoom = 1;
-			let mapLines = [];
-			let activeConnections = [];
-			let tileElements = new Map();
-			let activePointId = null;
-			let tunnels = [];
 			
 			function findPoint(id) {
 				return points.find(point => point.id === id);
