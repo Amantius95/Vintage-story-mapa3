@@ -1,8 +1,8 @@
 ﻿{
     "mapBounds": {
-        "sever": 8,
-        "zapad": 12,
-        "juh": 12,
+        "sever": 17,
+        "zapad": 23,
+        "juh": 31,
         "vychod": 10
     }
 }
