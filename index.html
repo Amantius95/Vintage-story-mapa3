@@ -682,23 +682,21 @@
 				const grid = document.getElementById('mapGrid');
 				grid.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
 				
+				// NAHRADENÁ ČASŤ PRE LOKÁLNE NAČÍTAVANIE:
 				tileElements.forEach((img, key) => {
-					const [x, z] = key.split('_').map(Number);
-					const { year, month, day } = getCurrentDate();
-					img.src = `https://images.weserv.nl/?url=http://mox.chita.cz:8080/basic/0/${day}${month}/${year}/tiles/basic/2/${62 + x}_${62 + z}.webp`;
+					// key obsahuje formát "x_z" (napr. "-2_5")
+					img.src = `Data/Mapa/${key}.png`;
+					
+					// Ošetrenie prípadu, ak dlaždica neexistuje (voliteľné)
+					img.onerror = function() {
+						this.src = 'Data/Mapa/empty.png'; // Cesta k nejakému prázdnemu štvorcu
+						this.style.backgroundColor = '#ccc';
+					};
 				});
 				
 				// Aktualizujeme pozície bodov a čiar
 				updatePointPositions();
 				updateLinePositions();
-			}
-			
-			function getCurrentDate() {
-				const today = new Date();
-				const year = today.getFullYear();
-				const month = String(today.getMonth() + 1).padStart(2, '0'); // Mesiac je od 0
-				const day = String(today.getDate()).padStart(2, '0');
-				return { year, month, day }; // Vráti objekt s rokom, mesiacom a dňom
 			}
 			
 			function highlightPoint(pointId) {
